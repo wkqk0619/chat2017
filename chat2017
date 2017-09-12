@@ -1,0 +1,118 @@
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.*;
+
+
+public class Server03 {
+  public static final int PORT = 8080;
+ 
+  public static void main(String[] args) {
+    ServerSocket sSock = null;
+    Map<String, DataOutputStream> mClientMap = new HashMap<>();
+    Collections.synchronizedMap(mClientMap);
+ 
+    try {
+      sSock = new ServerSocket(PORT);
+      System.out.println("Client Wait...");
+      Socket clientSocket = sSock.accept();
+ 
+      ServerThread03 clientThread = new ServerThread03(clientSocket,mClientMap);
+      clientThread.start();
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        sSock.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      } //try-catch2
+    } //try-catch-finally1
+  } //main()
+} //class
+
+
+
+
+
+//많은 Client들이 서로 대화할 수 있는 Thread 클래스
+import java.io.*;
+ 
+public class ClientThread03 extends Thread {
+ 
+  // Server가 보내는 채팅 메세지를 받기 위한 InputStream
+  private InputStream in;
+ 
+  public ClientThread03(InputStream in) {
+    this.in = in;
+  }
+ 
+  @Override
+  public void run() {
+    DataInputStream dis = null;
+    try {
+      dis = new DataInputStream(in);
+      String msg = "";
+      while (true) {
+        msg = dis.readUTF();
+        System.out.println(msg);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+}
+
+
+
+
+//서버에 접속하여 대화를 나눌 Client 클래스
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.util.Scanner;
+ 
+public class Client03 {
+  public static void main(String[] args) {
+    Socket socket = null;
+    DataInputStream dis = null;
+    DataOutputStream dos = null;
+    Scanner sc = new Scanner(System.in);
+    String nickName = "";
+    try {
+      socket = new Socket("192.168.1.2", 8080);
+ 
+      System.out.println("닉네임 입력");
+      nickName = sc.nextLine();
+ 
+      OutputStream out = socket.getOutputStream();
+      dos = new DataOutputStream(out);
+      dos.writeUTF(nickName);
+ 
+      ClientThread03 clientThread = new ClientThread03(socket.getInputStream());
+      clientThread.start();
+ 
+      String msg = "";
+ 
+      while (!msg.toLowerCase().equals("exit")) {
+        System.out.print(" >> ");
+        msg = sc.nextLine();
+ 
+        // 공백문자를 보내면 아무것도 가지 않도록
+        if (!msg.trim().equals(""))
+          dos.writeUTF(msg);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    } finally {
+      try {
+        dos.close();
+        socket.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+}
